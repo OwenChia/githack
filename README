@@ -1,0 +1,9 @@
+githak
+=======
+
+Mostly it an py3k version with own implement Git parse for https://github.com/lijiejie/GitHack
+> GitHack is a `.git` folder disclosure exploit.
+
+Usage:
+  make zipapp
+  python githack.pyz http://example.com/.git
