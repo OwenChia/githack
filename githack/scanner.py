@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from urllib import parse, request
 from pathlib import Path
+from urllib import parse, request
 import io
-import sys
 import logging
+import sys
 
-from parse import parse_index, parse_blob
+try:
+    from parse import parse_blob, parse_index
+except ModuleNotFoundError:
+    from .parse import parse_blob, parse_index
 
 
 class Scanner:
@@ -21,7 +24,7 @@ class Scanner:
         if self.workdir.exists():
             option = input(f'Workdir `{self.workdir}` already exists: [o]verride/[Q]uit? ')
             option = option.strip().lower()
-            if option == 'q' or option == '':
+            if option != 'o':
                 sys.exit(1)
         else:
             self.workdir.mkdir(parents=True)
@@ -29,20 +32,27 @@ class Scanner:
             uri = parse.urljoin(uri, '.git')
         return uri
 
-    def _get_index(self):
-        req = request.Request(self.uri + '/index')
+    def _fetch(self, uri):
+        req = request.Request(uri)
         res = request.urlopen(req)
-        return io.BytesIO(res.read())
+        return res.read()
+
+    def _save(self, filename, content):
+        if not filename.parent.exists():
+            filename.parent.mkdir(parents=True, exist_ok=True)
+        filename.write_bytes(content)
+
+    def _get_index(self):
+        uri = self.uri + '/index'
+        content = self._fetch(uri)
+        return io.BytesIO(content)
 
     def _get_blob(self, name, sha1):
         uri = '/'.join([self.uri, 'objects', sha1[:2], sha1[2:]])
-        req = request.Request(uri)
-        res = request.urlopen(req)
-        header, blob = parse_blob(res.read())
+        content = self._fetch(uri)
+        header, blob = parse_blob(content)
         filename = self.workdir / name
-        if not filename.parent.exists():
-            filename.parent.mkdir(parents=True, exist_ok=True)
-        filename.write_bytes(blob)
+        self._save(filename, blob)
         return header.decode()
 
     def exploit(self):

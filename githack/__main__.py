@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from argparse import ArgumentParser
-from scanner import Scanner
+try:
+    from scanner import Scanner
+except ModuleNotFoundError:
+    from .scanner import Scanner
 
 
 def parse_args():

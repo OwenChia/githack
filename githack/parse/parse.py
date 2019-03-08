@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .structure import Structure
-import zlib
 import sys
+import zlib
 
 SIGNATURE = b'DIRC'
 SUPPORTED_VERSION = (2, 3)
@@ -77,7 +77,7 @@ def parse_index(fd):
 
         _padlength = 8 - (entries.struct_size % 8)
         nuls = fd.read(_padlength)
-        if set(nuls) == set(['\x00']):
+        if set(nuls) == set('\x00'):
             raise Exception('padding contained non-NUL')
 
         yield entries
