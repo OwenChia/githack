@@ -1,13 +1,13 @@
-githak
+githack
 =======
 
 Basically it an py3k version with own implemented Git parse for https://github.com/lijiejie/GitHack
 > GitHack is a `.git` folder disclosure exploit.
 
 How it works?
-setp 1:
+step 1:
   fetch .git/index, then parse it, get each blob's filename and checksum.
-setp 2:
+step 2:
   download blob file, and restore it to source code
 
 Usage:
