@@ -7,9 +7,9 @@ import logging
 import sys
 
 try:
-    from parse import parse_blob, parse_index
+    from parse import parse_object, parse_index
 except ModuleNotFoundError:
-    from .parse import parse_blob, parse_index
+    from .parse import parse_object, parse_index
 
 
 class Scanner:
@@ -50,10 +50,10 @@ class Scanner:
     def _get_blob(self, name, sha1):
         uri = '/'.join([self.uri, 'objects', sha1[:2], sha1[2:]])
         content = self._fetch(uri)
-        header, blob = parse_blob(content)
+        filetype, blob = parse_object(content)
         filename = self.workdir / name
         self._save(filename, blob)
-        return header.decode()
+        return filetype.decode()
 
     def exploit(self):
         index_file = self._get_index()
