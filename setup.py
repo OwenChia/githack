@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     name='githack',
     author='Owen Chia',
-    packages=['githack'],
+    packages=['githack', 'githack/parse'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
