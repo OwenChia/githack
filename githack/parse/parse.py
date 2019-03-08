@@ -42,10 +42,10 @@ def parse_index(fd):
     ''' https://git-scm.com/docs/index-format '''
     header = Header.from_file(fd)
     if header.signature != SIGNATURE:
-        raise Exception("Not a Git index file")
+        raise TypeError("Not a Git index file")
 
     if header.version not in SUPPORTED_VERSION:
-        raise Exception("Unsupported version")
+        raise NotImplementedError("Unsupported version")
     yield header.entries
 
     for idx in range(header.entries):
@@ -83,11 +83,17 @@ def parse_index(fd):
         yield entries
 
 
-def parse_blob(bytedata):
+def parse_object(bytedata, *, strict_mode=False):
     ''' https://git-scm.com/book/en/v2/Git-Internals-Git-Objects'''
     try:
         bytedata = zlib.decompress(bytedata)
     except Exception as ex:
         print(repr(ex), file=sys.stderr)
-    blob = bytedata.split(b'\x00', 1)
-    return blob
+
+    bytedata = bytedata.replace(b' ', b'\x00', 1).split(b'\x00', 2)
+    filetype, length, content = bytedata
+
+    if strict_mode and str(len(content)) != length.decode():
+        raise Exception('Parse Error: content length not fit')
+
+    return filetype, content
