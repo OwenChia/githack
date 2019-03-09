@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='githack',
-    version='0.0.1',
+    version='0.0.2',
     author='Owen Chia',
     packages=['githack', 'githack/parse'],
     classifiers=[
