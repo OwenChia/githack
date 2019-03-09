@@ -5,18 +5,18 @@ default: run
 run:
 	python githack http://127.0.0.1:8000
 
-.PHONY: zipapprun
-zipapprun:zipapp
+.PHONY: runzipapp
+runzipapp: buildzipapp
 	python githack.pyz http://127.0.0.1:8000
 
 .PHONY: build
 build:
 	python setup.py bdist_wheel
 
+.PHONY: buildzipapp
+buildzipapp:
+	python -m zipapp --compress githack
+
 .PHONY: clean
 clean:
 	rm -Ir site dist build githack.egg-info
-
-.PHONY: zipapp
-zipapp:
-	python -m zipapp githack
