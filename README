@@ -20,3 +20,6 @@ Usage:
 - pip
   pip install git+https://github.com/owenchia/githack
   githack http://example.com/.git
+
+Known Issues:
+- worrong file permissions
