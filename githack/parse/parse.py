@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from .structure import Structure
+import re
 import sys
 import zlib
 
 SIGNATURE = b'DIRC'
 SUPPORTED_VERSION = (2, 3)
+RE_OBJECTS_TREE = re.compile(rb'(\d+) ([^\x00]+)\x00(.{20})', re.DOTALL)
 
 
 class Header(Structure):
@@ -90,8 +92,16 @@ def parse_object(bytedata, *, strict_mode=False):
     except Exception as ex:
         print(repr(ex), file=sys.stderr)
 
-    bytedata = bytedata.replace(b' ', b'\x00', 1).split(b'\x00', 2)
-    filetype, length, content = bytedata
+    bytedata = bytedata.replace(b' ', b'\x00', 1)
+    filetype, length, content = bytedata.split(b'\x00', 2)
+
+    '''
+    if filetype == b'tree':
+        seen = []
+        for mode, filename, hashvalue in RE_OBJECTS_TREE.finditer(content):
+            seen.append((mode, filename, hashvalue.hex()))
+        content = seen
+    '''
 
     if strict_mode and str(len(content)) != length.decode():
         raise Exception('Parse Error: content length not fit')

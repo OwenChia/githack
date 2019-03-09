@@ -17,7 +17,8 @@ def parse_args():
 def main():
     args = parse_args()
     scanner = Scanner(args.URI)
-    scanner.exploit()
+    scanner.crawl()
+    scanner.restore()
 
 
 if __name__ == '__main__':
