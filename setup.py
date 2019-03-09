@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
+from pathlib import Path
 
+here = Path(__file__).parent
+long_description = here / 'README'
 
 setup(
     name='githack',
-    version='0.0.2',
+    version='0.0.2-r1',
     author='Owen Chia',
+    url='https://github.com/OwenChia/githack',
     packages=['githack', 'githack/parse'],
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -21,4 +25,8 @@ setup(
             'githack=githack.__main__:main',
         ],
     },
+    long_description=long_description.read_text(),
+    long_description_content_type='text/plain',
+    keywords='git web-security leakage',
+    python_requires='>=3.6',
 )
