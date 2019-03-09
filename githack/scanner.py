@@ -2,11 +2,11 @@
 from concurrent import futures
 from pathlib import Path
 from urllib import parse, request
-import io
 import logging
-import sys
-import re
 import queue
+import re
+import sys
+import threading
 
 try:
     from parse import parse_object, parse_index
@@ -16,7 +16,10 @@ except ModuleNotFoundError:
 logging.basicConfig(level=logging.INFO)
 
 RE_PATTERN_SHA1 = re.compile(rb'[0-9a-fA-F]{40}')
-RE_PATTERN_TREE_OBJECT = re.compile(rb'(\d+) ([^\x00]+)\x00(.{20})', re.DOTALL)
+RE_PATTERN_TREE_OBJECT = re.compile(rb'''(?P<mode>\d+)\x20
+                                         (?P<filename>[^\x00]+)\x00
+                                         (?P<hash>.{20})''',
+                                    re.VERBOSE | re.DOTALL)
 
 
 class Scanner:
@@ -24,6 +27,8 @@ class Scanner:
         self.log = logging.getLogger(__name__)
         self.workdir = Path('site')
         self.uri = self._check_uri(uri)
+        self.lock = threading.Lock()
+        self._crawled = set()
         self._queue = queue.Queue()
 
     def _check_uri(self, uri):
@@ -44,10 +49,21 @@ class Scanner:
         self.log.info(f'Target: {uri}')
         return uri
 
+    def _check_duplicate(self, item):
+        with self.lock:
+            if item in self._crawled:
+                return True
+            else:
+                self._crawled.add(item)
+                return False
+
     def _fetch(self, uri):
         req = request.Request(uri)
-        res = request.urlopen(req)
-        return res.read()
+        try:
+            res = request.urlopen(req)
+            return res.read()
+        except Exception as ex:
+            self.log.error(f'\x1b[31m{repr(ex)}: {uri}\x1b[0m')
 
     def _save(self, filename, content):
         if not filename.parent.exists():
@@ -55,28 +71,45 @@ class Scanner:
         filename.write_bytes(content)
 
     def _prepare(self):
-        '''HEAD
+        ''' download metadata, put seed to queue
+        HEAD
+        ====
         ref: refs/heads/master
+
+        refs/heads/master
+        ====
+        <hashvalue>
         '''
         workdir = self.workdir / '.git'
-
-        for filename in ['index', 'config', 'logs/HEAD']:
-            content = self._fetch(self.uri + filename)
-            self._save(workdir / filename, content)
 
         head = self._fetch(self.uri + 'HEAD')
         self._save(workdir / 'HEAD', head)
         ref = head.split()[1].decode()
 
-        content = self._fetch(self.uri + 'logs/' + ref)
-        self._save(workdir / 'logs' / ref, content)
+        DOWNLOAD = ['index', 'config',
+                    'logs/HEAD', f'logs/{ref}',
+                    'logs/refs/stash']
+        for filename in DOWNLOAD:
+            content = self._fetch(self.uri + filename)
+            self._save(workdir / filename, content)
 
-        seed = self._fetch(self.uri + ref)
-        self._save(workdir / ref, seed)
-        self._queue.put(seed.decode().strip())
+        SEED = ['refs/stash', ref, ref.replace('heads', 'remotes/origin')]
+        seeds = set()
+        for filename in SEED:
+            seed = self._fetch(self.uri + filename)
+            if seed is None:
+                continue
+            self._save(workdir / filename, seed)
+
+            seeds.add(seed.decode().strip())
+        for seed in seeds:
+            self._queue.put(seed)
 
     def _process(self, item):
         # self.log.info(f'Processing {item}')
+        if self._check_duplicate(item):
+            return
+
         filepath = '/'.join(['objects', item[:2], item[2:]])
         objects = self._fetch(self.uri + filepath)
         self._save(self.workdir / '.git' / filepath, objects)
@@ -91,18 +124,13 @@ class Scanner:
                 self._queue.put(it.group().decode())
         elif filetype == b'tree':
             self.log.info(f'tree: {item}')
+            # RE_PATTERN_TREE_OBJECT (mode, filename, hash)
             for it in RE_PATTERN_TREE_OBJECT.finditer(content):
                 self._queue.put(it.groups()[2].hex())
 
-    def _get_index(self):
-        uri = self.uri + '/index'
-        content = self._fetch(uri)
-        return io.BytesIO(content)
-
-    def _get_object(self, name, sha1):
-        uri = '/'.join([self.uri, 'objects', sha1[:2], sha1[2:]])
-        content = self._fetch(uri)
-        filetype, content = parse_object(content)
+    def _restore_object(self, name, sha1):
+        objects = self.workdir / '.git' / 'objects' / sha1[:2] / sha1[2:]
+        filetype, content = parse_object(objects.read_bytes())
         filename = self.workdir / name
         self._save(filename, content)
         return sha1, filetype.decode()
@@ -111,28 +139,30 @@ class Scanner:
         self._prepare()
         with futures.ThreadPoolExecutor() as executor:
             item = self._queue.get()
-            future = {executor.submit(self._process, item): item}
-            while future:
-                done, not_done = futures.wait(future, return_when=futures.FIRST_COMPLETED)
+            future_to_crawl = {executor.submit(self._process, item): item}
+            while future_to_crawl:
+                done, not_done = futures.wait(future_to_crawl, return_when=futures.FIRST_COMPLETED)
                 while not self._queue.empty():
                     item = self._queue.get()
-                    future[executor.submit(self._process, item)] = item
-                for f in done:
-                    it = future[f]
+                    future_to_crawl[executor.submit(self._process, item)] = item
+                for future in done:
+                    it = future_to_crawl[future]
                     try:
-                        f.result()
+                        future.result()
                     except Exception as ex:
                         self.log.error(f'\x1b[3m[ERROR] {it}: {repr(ex)}\x1b[0m')
-                    del future[f]
+                    del future_to_crawl[future]
 
     def restore(self):
-        index_file = self._get_index()
-        _parser = parse_index(index_file)
-        total = next(_parser)
-        self.log.info(f"Total: {total}")
+        index = self.workdir / '.git' / 'index'
+        with open(index, 'rb') as fd:
+            _parser = parse_index(fd)
+            total = next(_parser)
+            self.log.info(f"Total: {total}")
 
-        with futures.ThreadPoolExecutor() as executor:
-            futures_to_restore = {executor.submit(self._get_object, e.name, e.sha1): e.name for e in _parser}
+            with futures.ThreadPoolExecutor() as executor:
+                futures_to_restore = {executor.submit(self._restore_object, e.name, e.sha1): e.name
+                                      for e in _parser}
 
         for future in futures.as_completed(futures_to_restore):
             e = futures_to_restore[future]
