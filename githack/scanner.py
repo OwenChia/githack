@@ -23,9 +23,9 @@ RE_PATTERN_TREE_OBJECT = re.compile(rb'''(?P<mode>\d+)\x20
 
 
 class Scanner:
-    def __init__(self, uri: str):
+    def __init__(self, uri: str, workdir: str):
         self.log = logging.getLogger(__name__)
-        self.workdir = Path('site')
+        self.workdir = Path(workdir)
         self.uri = self._check_uri(uri)
         self.lock = threading.Lock()
         self._crawled = set()
@@ -126,7 +126,7 @@ class Scanner:
             self.log.info(f'tree: {item}')
             # RE_PATTERN_TREE_OBJECT (mode, filename, hash)
             for it in RE_PATTERN_TREE_OBJECT.finditer(content):
-                self._queue.put(it.groups()[2].hex())
+                self._queue.put(it['hash'].hex())
 
     def _restore_object(self, name, sha1):
         objects = self.workdir / '.git' / 'objects' / sha1[:2] / sha1[2:]
@@ -155,6 +155,10 @@ class Scanner:
 
     def restore(self):
         index = self.workdir / '.git' / 'index'
+        if not index.exists():
+            self.log.error('index file not found, please use `git reset` to revocer it')
+            return
+
         with open(index, 'rb') as fd:
             _parser = parse_index(fd)
             total = next(_parser)
