@@ -60,13 +60,17 @@ class Scanner:
         '''
         workdir = self.workdir / '.git'
 
-        for filename in ['index', 'config']:
+        for filename in ['index', 'config', 'logs/HEAD']:
             content = self._fetch(self.uri + filename)
             self._save(workdir / filename, content)
 
         head = self._fetch(self.uri + 'HEAD')
         self._save(workdir / 'HEAD', head)
         ref = head.split()[1].decode()
+
+        content = self._fetch(self.uri + 'logs/' + ref)
+        self._save(workdir / 'logs' / ref, content)
+
         seed = self._fetch(self.uri + ref)
         self._save(workdir / ref, seed)
         self._queue.put(seed.decode().strip())
