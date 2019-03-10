@@ -61,7 +61,7 @@ class Scanner:
             res = request.urlopen(req)
             return res.read()
         except Exception as ex:
-            self.log.error(f'{ex.msg}: {uri}')
+            self.log.error(f'{ex}: {uri}')
 
     def _save(self, filename, content):
         if not filename.parent.exists():
@@ -182,6 +182,6 @@ class Scanner:
             try:
                 result = future.result()
             except Exception as exc:
-                self.log.exception(f'[ERROR] {e} : {repr(exc)}')
+                self.log.error(f'[ERROR] {e} : {repr(exc)}')
             else:
                 self.log.info(f'[OK] {e} : {result}')

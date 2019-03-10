@@ -25,6 +25,7 @@ setup(
             'githack=githack.__main__:main',
         ],
     },
+    description='A pure python implemented .git/ folder disclosure exploit',
     long_description=long_description.read_text(),
     long_description_content_type='text/plain',
     keywords='git web-security leakage',
