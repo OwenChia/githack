@@ -13,8 +13,6 @@ try:
 except ModuleNotFoundError:
     from .parse import parse_object, parse_index
 
-logging.basicConfig(level=logging.INFO)
-
 RE_PATTERN_SHA1 = re.compile(rb'[0-9a-fA-F]{40}')
 RE_PATTERN_TREE_OBJECT = re.compile(rb'''(?P<mode>\d+)\x20
                                          (?P<filename>[^\x00]+)\x00
@@ -63,12 +61,13 @@ class Scanner:
             res = request.urlopen(req)
             return res.read()
         except Exception as ex:
-            self.log.error(f'\x1b[31m{repr(ex)}: {uri}\x1b[0m')
+            self.log.error(f'{ex.msg}: {uri}')
 
     def _save(self, filename, content):
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True, exist_ok=True)
-        filename.write_bytes(content)
+        if content is not None:
+            filename.write_bytes(content)
 
     def _prepare(self):
         ''' download metadata, put seed to queue
@@ -81,27 +80,34 @@ class Scanner:
         <hashvalue>
         '''
         workdir = self.workdir / '.git'
+        ref = 'refs/heads/master'
 
         head = self._fetch(self.uri + 'HEAD')
-        self._save(workdir / 'HEAD', head)
-        ref = head.split()[1].decode()
+        if head is not None:
+            self._save(workdir / 'HEAD', head)
+            ref = head.split()[1].decode()
 
-        DOWNLOAD = ['index', 'config',
-                    'logs/HEAD', f'logs/{ref}',
-                    'logs/refs/stash']
+        DOWNLOAD = {'index', 'config', 'logs/refs/heads/master',
+                    'logs/HEAD', f'logs/{ref}', 'logs/refs/stash'}
         for filename in DOWNLOAD:
             content = self._fetch(self.uri + filename)
             self._save(workdir / filename, content)
 
-        SEED = ['refs/stash', ref, ref.replace('heads', 'remotes/origin')]
+        SEED = {'ORIG_HEAD', 'refs/heads/master',
+                'refs/stash', 'refs/remotes/origin',
+                ref, ref.replace('heads', 'remotes/origin')}
         seeds = set()
         for filename in SEED:
             seed = self._fetch(self.uri + filename)
             if seed is None:
                 continue
             self._save(workdir / filename, seed)
-
             seeds.add(seed.decode().strip())
+
+        if len(seeds) == 0:
+            self.log.critical('No seed found, please check your network setting.')
+            sys.exit(1)
+
         for seed in seeds:
             self._queue.put(seed)
 
@@ -150,7 +156,7 @@ class Scanner:
                     try:
                         future.result()
                     except Exception as ex:
-                        self.log.error(f'\x1b[3m[ERROR] {it}: {repr(ex)}\x1b[0m')
+                        self.log.error(f'[ERROR] {it}: {repr(ex)}')
                     del future_to_crawl[future]
 
     def restore(self):
@@ -173,6 +179,6 @@ class Scanner:
             try:
                 result = future.result()
             except Exception as exc:
-                self.log.exception(f'\x1b[31;1m[ERROR]\x1b[0m {e} : {repr(exc)}')
+                self.log.exception(f'[ERROR] {e} : {repr(exc)}')
             else:
-                self.log.info(f'\x1b[32m[OK]\x1b[0m {e} : {result}')
+                self.log.info(f'[OK] {e} : {result}')

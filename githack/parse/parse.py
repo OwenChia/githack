@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from .structure import Structure
+from operator import methodcaller
 import re
 import sys
 import zlib
+
+from .structure import Structure
 
 SIGNATURE = b'DIRC'
 SUPPORTED_VERSION = (2, 3)
@@ -29,7 +31,7 @@ class Entries(Structure):
         ('I', 'uid'),
         ('I', 'gid'),
         ('I', 'size'),
-        ('20s', 'sha1', lambda it: it.hex()),
+        ('20s', 'sha1', methodcaller('hex')),
         ('H', 'flags'),
     ]
 
