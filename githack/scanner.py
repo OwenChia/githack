@@ -134,11 +134,14 @@ class Scanner:
             for it in RE_PATTERN_TREE_OBJECT.finditer(content):
                 self._queue.put(it['hash'].hex())
 
-    def _restore_object(self, name, sha1):
+    def _restore_object(self, name, sha1, mode):
         objects = self.workdir / '.git' / 'objects' / sha1[:2] / sha1[2:]
         filetype, content = parse_object(objects.read_bytes())
         filename = self.workdir / name
         self._save(filename, content)
+
+        # mode can only be 0o100755 or 0o100644
+        filename.chmod(mode - 0o100000)
         return sha1, filetype.decode()
 
     def crawl(self):
@@ -171,7 +174,7 @@ class Scanner:
             self.log.info(f"Total: {total}")
 
             with futures.ThreadPoolExecutor() as executor:
-                futures_to_restore = {executor.submit(self._restore_object, e.name, e.sha1): e.name
+                futures_to_restore = {executor.submit(self._restore_object, e.name, e.sha1, e.mode): e.name
                                       for e in _parser}
 
         for future in futures.as_completed(futures_to_restore):
