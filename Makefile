@@ -15,7 +15,9 @@ build:
 
 .PHONY: buildzipapp
 buildzipapp:
-	python -m zipapp --compress githack
+	# remove --compress cause python 3.6 not support compress
+	# python -m zipapp --compress githack
+	python -m zipapp githack
 
 .PHONY: clean
 clean:
