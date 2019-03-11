@@ -3,7 +3,7 @@ from setuptools import setup
 from pathlib import Path
 
 here = Path(__file__).parent
-long_description = here / 'README'
+long_description = here / 'README.rst'
 
 setup(
     name='githack',
@@ -27,7 +27,7 @@ setup(
     },
     description='A pure python implemented .git/ folder disclosure exploit',
     long_description=long_description.read_text(),
-    long_description_content_type='text/plain',
+    long_description_content_type='text/x-rst',
     keywords='git web-security leakage',
     python_requires='>=3.6',
 )
