@@ -31,6 +31,10 @@ class Scanner:
 
     def _check_uri(self, uri):
         parsed = parse.urlparse(uri)
+        if parsed.scheme not in ('http', 'https'):
+            self.log.critical('Invalid URL format, try add http:// or https://')
+            sys.exit(1)
+
         self.workdir /= parsed.netloc
         if self.workdir.exists():
             option = input(f'Workdir `{self.workdir}` already exists: [o]verride/[Q]uit? ')

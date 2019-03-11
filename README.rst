@@ -10,6 +10,9 @@ githack
     :target: https://travis-ci.com/OwenChia/githack
 .. image:: https://badge.fury.io/py/githack.svg
     :target: https://pypi.org/project/githack/
+.. image:: https://img.shields.io/pypi/pyversions/githack.svg
+    :alt: PyPI - Python Version
+    :target: https://pypi.org/project/githack/
 .. image:: https://img.shields.io/github/license/owenchia/githack.svg
     :alt: GitHub
     :target: ./LICENSE
