@@ -93,6 +93,7 @@ def parse_object(bytedata, *, strict_mode=False):
         bytedata = zlib.decompress(bytedata)
     except Exception as ex:
         print(repr(ex), file=sys.stderr)
+        sys.exit(1)
 
     bytedata = bytedata.replace(b' ', b'\x00', 1)
     filetype, length, content = bytedata.split(b'\x00', 2)

@@ -18,6 +18,11 @@ RE_PATTERN_TREE_OBJECT = re.compile(rb'''(?P<mode>\d+)\x20
                                          (?P<filename>[^\x00]+)\x00
                                          (?P<hash>.{20})''',
                                     re.VERBOSE | re.DOTALL)
+USER_AGENT = (
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) '
+    'Chrome/35.0.1916.47 Safari/537.36'
+)
 
 
 class Scanner:
@@ -60,7 +65,10 @@ class Scanner:
                 return False
 
     def _fetch(self, uri):
-        req = request.Request(uri)
+        headers = {
+            'User-Agent': USER_AGENT
+        }
+        req = request.Request(uri, headers=headers)
         try:
             res = request.urlopen(req)
             return res.read()
@@ -98,7 +106,7 @@ class Scanner:
             self._save(workdir / filename, content)
 
         SEED = {'ORIG_HEAD', 'refs/heads/master',
-                'refs/stash', 'refs/remotes/origin',
+                'refs/stash', 'refs/remotes/origin/master',
                 ref, ref.replace('heads', 'remotes/origin')}
         seeds = set()
         for filename in SEED:
