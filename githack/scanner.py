@@ -1,28 +1,26 @@
 # -*- coding: utf-8 -*-
-from concurrent import futures
-from pathlib import Path
-from urllib import parse, request
 import logging
 import queue
 import re
 import sys
 import threading
+from concurrent import futures
+from pathlib import Path
+from urllib import parse, request
 
 try:
     from parse import parse_object, parse_index
+    from useragents import get_random_ua
 except ModuleNotFoundError:
     from .parse import parse_object, parse_index
+    from .useragents import get_random_ua
 
 RE_PATTERN_SHA1 = re.compile(rb'[0-9a-fA-F]{40}')
 RE_PATTERN_TREE_OBJECT = re.compile(rb'''(?P<mode>\d+)\x20
                                          (?P<filename>[^\x00]+)\x00
                                          (?P<hash>.{20})''',
                                     re.VERBOSE | re.DOTALL)
-USER_AGENT = (
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) '
-    'AppleWebKit/537.36 (KHTML, like Gecko) '
-    'Chrome/35.0.1916.47 Safari/537.36'
-)
+USER_AGENT = get_random_ua()
 
 
 class Scanner:
