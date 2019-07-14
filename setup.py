@@ -7,10 +7,10 @@ long_description = here / 'README.rst'
 
 setup(
     name='githack',
-    version='0.0.4',
+    version='0.0.4-1',
     author='Owen Chia',
     url='https://github.com/OwenChia/githack',
-    packages=['githack', 'githack/parse'],
+    packages=['githack', 'githack/parse', 'githack/useragents'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
