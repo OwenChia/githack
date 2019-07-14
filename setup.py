@@ -10,7 +10,7 @@ setup(
     version='0.0.4',
     author='Owen Chia',
     url='https://github.com/OwenChia/githack',
-    packages=['githack', 'githack/parse'],
+    packages=['githack', 'githack/parse', 'githack/useragents'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
