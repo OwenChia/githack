@@ -7,7 +7,7 @@ long_description = here / 'README.rst'
 
 setup(
     name='githack',
-    version='0.0.3',
+    version='0.0.4',
     author='Owen Chia',
     url='https://github.com/OwenChia/githack',
     packages=['githack', 'githack/parse'],

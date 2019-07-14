@@ -122,12 +122,15 @@ class Scanner:
             self._queue.put(seed)
 
     def _process(self, item):
-        # self.log.info(f'Processing {item}')
+        self.log.debug(f'processing: {item}')
         if self._check_duplicate(item):
             return
 
         filepath = '/'.join(['objects', item[:2], item[2:]])
         objects = self._fetch(self.uri + filepath)
+        if objects is None:
+            return
+
         self._save(self.workdir / '.git' / filepath, objects)
 
         filetype, content = parse_object(objects)
@@ -192,6 +195,6 @@ class Scanner:
             try:
                 result = future.result()
             except Exception as exc:
-                self.log.error(f'[ERROR] {e} : {repr(exc)}')
+                self.log.error(f'[ERROR] {e}: {repr(exc)}')
             else:
-                self.log.info(f'[OK] {e} : {result}')
+                self.log.info(f'[OK] {e}: {result}')
